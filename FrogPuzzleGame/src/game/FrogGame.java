@@ -37,10 +37,6 @@ public class FrogGame {
 	 * A stack holding the elements in the DFS search.
 	 */
 	private Deque<FrogState> stack = new LinkedList<>();
-	/**
-	 * A set containing the visited states. Used to not go the same root twice.
-	 */
-	private Set<String> visited = new HashSet<>();
 	
 	/**
 	 * Creates the initial state of the game.
@@ -69,7 +65,6 @@ public class FrogGame {
 
 	private void makeInitPush() {
 		stack.push(initialState);
-		visited.add(initialState.getState());
 	}
 	
 	private void iterativeDFS() {
@@ -139,11 +134,9 @@ public class FrogGame {
 			stateArr[childEmptyPos] = FrogState.EMPTY_SPOT_CHAR;
 			
 			String childState = new String(stateArr);
-			if(!visited.contains(childState)) {
-				visited.add(childState);
-				FrogState child = new FrogState(childState, childEmptyPos, parent);
-				return child;
-			}
+			FrogState child = new FrogState(childState, childEmptyPos, parent);
+			return child;
+
 		}
 		
 		return null;
@@ -159,11 +152,8 @@ public class FrogGame {
 			stateArr[childEmptyPos] = FrogState.EMPTY_SPOT_CHAR;
 			
 			String childState = new String(stateArr);
-			if(!visited.contains(childState)) {
-				visited.add(childState);
-				FrogState child = new FrogState(childState, childEmptyPos, parent);
-				return child;
-			}
+			FrogState child = new FrogState(childState, childEmptyPos, parent);
+			return child;
 		}
 		
 		return null;
