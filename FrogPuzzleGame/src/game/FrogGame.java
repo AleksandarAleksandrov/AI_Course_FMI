@@ -112,17 +112,17 @@ public class FrogGame {
 	private List<FrogState> getNextValidStates(FrogState parent) {
 		List<FrogState> validStates = new LinkedList<>();
 		
-		FrogState leftTwo = caseRight(parent, 2);
-		if(leftTwo != null) validStates.add(leftTwo);
+		FrogState rightTwo = caseRight(parent, 2);
+		if(rightTwo != null) validStates.add(rightTwo);
 		
-		FrogState leftOne = caseRight(parent, 1);
-		if(leftOne != null) validStates.add(leftOne);
-		
-		FrogState rightOne = caseLeft(parent, 1);
+		FrogState rightOne = caseRight(parent, 1);
 		if(rightOne != null) validStates.add(rightOne);
 		
-		FrogState rightTwo = caseLeft(parent, 2);
-		if(rightTwo != null) validStates.add(rightTwo);		
+		FrogState leftOne = caseLeft(parent, 1);
+		if(leftOne != null) validStates.add(leftOne);
+		
+		FrogState leftTwo = caseLeft(parent, 2);
+		if(leftTwo != null) validStates.add(leftTwo);		
 
 				
 		return validStates;
