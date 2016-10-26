@@ -121,7 +121,7 @@ public class Board implements Comparable<Board>{
 		if(o == null) {
 			return -1;
 		}		
-		return this.getCombinedDistance() - o.getCombinedDistance();
+		return this.heuristicDistance - o.heuristicDistance;
 	}
 	
 	/**
@@ -153,5 +153,60 @@ public class Board implements Comparable<Board>{
 		
 		return builder.toString();
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((boardState == null) ? 0 : boardState.hashCode());
+		result = prime * result + ((direction == null) ? 0 : direction.hashCode());
+		result = prime * result + distanceFromRoot;
+		result = prime * result + heuristicDistance;
+		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		Board other = (Board) obj;
+		if (boardState == null) {
+			if (other.boardState != null) {
+				return false;
+			}
+		} else if (!boardState.equals(other.boardState)) {
+			return false;
+		}
+		if (direction == null) {
+			if (other.direction != null) {
+				return false;
+			}
+		} else if (!direction.equals(other.direction)) {
+			return false;
+		}
+		if (distanceFromRoot != other.distanceFromRoot) {
+			return false;
+		}
+		if (heuristicDistance != other.heuristicDistance) {
+			return false;
+		}
+		if (parent == null) {
+			if (other.parent != null) {
+				return false;
+			}
+		} else if (!parent.equals(other.parent)) {
+			return false;
+		}
+		return true;
+	}
+	
 
 }

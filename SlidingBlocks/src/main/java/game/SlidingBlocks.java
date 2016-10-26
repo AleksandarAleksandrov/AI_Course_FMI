@@ -24,7 +24,12 @@ public class SlidingBlocks {
 	private PriorityQueue<Board> prioritisedQ = new PriorityQueue<>();
 	
 	/**
-	 * The initial board fot the start of the game.
+	 * An upper bound on the number of elements the priority queue can hold.
+	 */
+	private final static int MAX_QUEUE_SIZE = 100_000;
+	
+	/**
+	 * The initial board for the start of the game.
 	 */
 	private Board initialBoard;
 	
@@ -50,12 +55,23 @@ public class SlidingBlocks {
 	 * to the final solution.
 	 */
 	public void startGame() {
+		// use ida* by default
+		//aStar();
+		iterativeDeepeningAStar();
+	}
+	
+	public void useAStarSolver() {
 		aStar();
 	}
 	
+	public void useIDAStarSolver() {
+		iterativeDeepeningAStar();
+	}
+
+	
 	/**
 	 * Method used to solve the problem. 
-	 * Uses the A* algorithm.
+	 * Uses the A* algorithm. Does not give the optimal solution.
 	 */
 	private void aStar() {
 		
@@ -63,8 +79,12 @@ public class SlidingBlocks {
 		prioritisedQ.add(initialBoard);
 			
 		while(!prioritisedQ.isEmpty()) {
-
-			Board currBoard = prioritisedQ.poll();			
+			
+			Board currBoard = prioritisedQ.poll();
+			
+//			if(currBoard.getCombinedDistance() > 40) {
+//				System.out.println(currBoard.toStringDetailed(puzzleSize));
+//			}
 			
 			// if the final state is found print it and end the program
 			if(currBoard.getBoardState().equals(finalBoardSate)) {
@@ -77,8 +97,83 @@ public class SlidingBlocks {
 
 			prioritisedQ.addAll(nextMoves);
 			
+			// when the queue becomes too big remove the last 20_000 elements of it
+			if(prioritisedQ.size() > MAX_QUEUE_SIZE + 20_000) {
+				for(int i = 0 ; i < prioritisedQ.size() - MAX_QUEUE_SIZE ; i++) {
+					prioritisedQ.remove(prioritisedQ.size() - 1);
+				}
+			}
+			
 		}			
 
+	}
+	
+	/**
+	 * The iterative deepening version of the A* algorithm.  
+	 * This one uses much less memory and CPU.
+	 */
+	private void iterativeDeepeningAStar() {
+		
+		int bound = initialBoard.getHeuristicDistance();
+		
+		// start the search by limited by the bound
+		while(true) {
+			// if the search did not find a solution at the old bound
+			// it returns the new bound to be used
+			int newBound = searchForSolution(initialBoard, 0, bound);
+			// if the new bound is Integer.MAX_VALUE something went wrong
+			if(newBound == Integer.MAX_VALUE) {
+				System.out.println("Something went wrong! Terminating application ...");
+				System.exit(-1);
+			}
+			bound = newBound;
+		}
+		
+		
+	}
+	
+	/**
+	 * Does the search for the solution node. Returns the new bound to be used for the search 
+	 * if a solution was not found. Prints the solution path and terminates the program if a 
+	 * solution is found.
+	 * @param node
+	 * @param distance
+	 * @param bound
+	 * @return
+	 */
+	private int searchForSolution(Board node, int distance, int bound) {
+		int nodeDist = distance + node.getHeuristicDistance();
+		// if the node bound if bigger return it
+		// and use it as the new bound
+		if(nodeDist > bound) {
+			return nodeDist;
+		}
+
+		// check if we have found the final state
+		isFinalStateNode(node);
+		// set the initial minimum bound to MAX_VALUE
+		int minBound = Integer.MAX_VALUE;
+		// get the next moves
+		List<Board> nextMoves = getNextMoves(node);
+		// for each new move do an informed DFS
+		for(Board move : nextMoves) {
+			int newBound = searchForSolution(move, distance + 1, bound);
+			if(newBound < minBound) minBound = newBound;
+		}
+		
+		return minBound;
+	}
+	
+	/**
+	 * Checks if the passed node is the current state node and if it is 
+	 * prints the path from the root and terminates the program.
+	 * @param node
+	 */
+	private void isFinalStateNode(Board node) {
+		if(finalBoardSate.equals(node.getBoardState())) {
+			printPath(node);
+			System.exit(0);
+		}
 	}
 	
 	/**
@@ -102,7 +197,29 @@ public class SlidingBlocks {
 		Board downMove = getNextMove(parentBoard, Board.MOVE_DOWN);
 		if(downMove != null) nextMoves.add(downMove);
 		
+		// sort so the algorithms always chose the best variant
+		// a small performance boost
+		//Collections.sort(nextMoves);
+		
 		return nextMoves;
+	}
+	
+	/**
+	 * method used to check against loops of random size.
+	 * @param state
+	 * @param parent
+	 * @return
+	 */
+	private boolean isInPath(BidiMap<Integer,TilePosition> state, Board parent) {
+		
+		while(parent != null) {
+			if (state.equals(parent.getBoardState())) {
+				return true;
+			}
+			parent = parent.getParent();
+		}
+		
+		return false;
 	}
 	
 	/**
@@ -129,6 +246,11 @@ public class SlidingBlocks {
 			TilePosition newPosUp = new TilePosition(movingTile.getRow() - 1, movingTile.getColumn());
 			// create the new map state 
 			BidiMap<Integer,TilePosition> newStateMapUp = createNewStateMap(parentState, movingTile, newPosUp);
+			// check against loops of random size
+			if(isInPath(newStateMapUp, parentBoard)) {
+				break;
+			}
+			
 			// calculate the manhattan distance for the new state to be used in the weight function 
 			int hieridicalDistanceUp = calculateManhattanDistance(newStateMapUp);			
 			nextMove =  new Board(	newStateMapUp,
@@ -144,6 +266,9 @@ public class SlidingBlocks {
 			}
 			TilePosition newPosDown = new TilePosition(movingTile.getRow() + 1, movingTile.getColumn());
 			BidiMap<Integer, TilePosition> newStateMapDown = createNewStateMap(parentState, movingTile, newPosDown);
+			if(isInPath(newStateMapDown, parentBoard)) {
+				break;
+			}
 			int hieridicalDistanceDown = calculateManhattanDistance(newStateMapDown);
 			nextMove =  new Board(	newStateMapDown,
 									distanceFromRoot + 1,
@@ -158,6 +283,9 @@ public class SlidingBlocks {
 			}
 			TilePosition newPosLeft = new TilePosition(movingTile.getRow(), movingTile.getColumn() - 1);
 			BidiMap<Integer,TilePosition> newStateMapLeft = createNewStateMap(parentState, movingTile, newPosLeft);
+			if(isInPath(newStateMapLeft, parentBoard)) {
+				break;
+			}
 			int manhattanDistanceLeft = calculateManhattanDistance(newStateMapLeft);
 			nextMove = new Board(	newStateMapLeft,
 									distanceFromRoot + 1,
@@ -172,6 +300,9 @@ public class SlidingBlocks {
 			}
 			TilePosition newPosRight = new TilePosition(movingTile.getRow(), movingTile.getColumn() + 1);
 			BidiMap<Integer,TilePosition> newStateMapRight = createNewStateMap(parentState, movingTile, newPosRight);
+			if(isInPath(newStateMapRight, parentBoard)) {
+				break;
+			}
 			int manhattanDistanceRight = calculateManhattanDistance(newStateMapRight);
 			nextMove = new Board(	newStateMapRight,
 									distanceFromRoot + 1,
@@ -306,7 +437,7 @@ public class SlidingBlocks {
 	 * @param value
 	 * @return
 	 */
-	public int getTrueCol(int value) {
+	private int getTrueCol(int value) {
 	    return (value - 1) % puzzleSize;
 	}
 	
@@ -315,7 +446,7 @@ public class SlidingBlocks {
 	 * @param value
 	 * @return
 	 */
-	public int getTrueRow(int value) {
+	private int getTrueRow(int value) {
 	    return (value - 1) / puzzleSize;
 	}
 	
