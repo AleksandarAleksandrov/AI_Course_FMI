@@ -31,7 +31,7 @@ public class MinConflictsSolver {
         while (true) {
             
             int maxConflicts = 0;
-            // find the world queens
+            // find the worst queens
             maxConflicts = maxConflictsAndWorstQueens(worstQueens, rows, maxConflicts);
             
             // there are no conflicts, so we have found a solution
